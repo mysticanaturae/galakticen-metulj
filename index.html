@@ -1,0 +1,474 @@
+<!DOCTYPE html> 
+<html lang="sl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Galaktičen Metulj</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #d0f0c0;
+  margin: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+h1 { font-family: 'Great Vibes', cursive; font-size: 3em; margin: 0 0 5px 0; text-align:center; }
+h2 { font-size:1.5em; margin:0 0 20px 0; color:#444; text-align:center; }
+
+/* --- NOVO: števec nad mrežo --- */
+#progressBar {
+  margin: 10px 0 18px 0;
+  font-size: 16px;
+  color: #333;
+  background: rgba(255,255,255,0.7);
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
+
+/* ohranjen container */
+#container-wrapper { width: 100%; overflow-x: auto; }
+#container { display: grid; grid-template-columns: 160px auto 320px; gap: 10px; background: rgba(255,255,255,0.3); padding: 10px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); min-width: max-content; }
+
+#signs { display: grid; grid-template-rows: repeat(20, 50px); row-gap: 3px; position: sticky; left: 0; background: #fff; z-index: 2; box-shadow: 2px 0 5px rgba(0,0,0,0.1); }
+.sign { display: flex; align-items: center; gap: 8px; font-size: 13px; height: 50px; line-height: 50px; white-space: nowrap; padding-left: 5px; box-sizing: border-box; }
+.sign img { width: 32px; height: 32px; }
+
+/* --- NOVO: breathing animacija za mrežo --- */
+@keyframes breathing {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.01); }
+  100% { transform: scale(1); }
+}
+#grid {
+  display: grid;
+  grid-template-columns: repeat(13, 50px);
+  grid-template-rows: repeat(20, 50px);
+  gap: 3px;
+  transition: transform 0.6s ease;
+  animation: breathing 4s ease-in-out infinite;
+}
+
+/* ohranjen stil celic */
+.cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border:1px solid #999;
+  font-size:13px;
+  cursor:pointer;
+  border-radius:5px;
+  transition: all 0.2s;
+  position: relative;
+}
+
+/* števec v celici */
+.cell-counter { position: absolute; bottom: 3px; right: 5px; background: rgba(0,0,0,0.6); color: #fff; font-size: 10px; border-radius: 50%; width: 16px; height: 16px; display: flex; justify-content: center; align-items: center; }
+
+#about {
+  background: rgba(255,255,255,0.9);
+  padding: 15px;
+  border-radius: 15px;
+  border: 2px solid gold;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  max-width: 300px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
+  overflow-y: auto;
+  position: sticky;
+  top: 20px;
+  align-self: start;
+}
+
+/* form styling (ohranjeno) */
+form { margin-top:20px; display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+input { padding: 10px; font-size: 16px; background-color: #fff; color: #000; border: 1px solid #ccc; border-radius: 5px; flex: 1 1 120px; min-width: 100px; }
+button { padding: 10px 15px; font-size: 16px; cursor: pointer; border-radius: 5px; background-color: #f4d03f; border: none; flex: 0 0 auto; }
+
+/* vnosna lista (ohranjeno) */
+#list { margin: 0 auto; width: 200px; border: 1px solid #ccc; background: #fff; padding: 10px; border-radius: 10px; max-height: 300px; overflow-y: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.2); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
+#list ul { list-style: none; padding: 0; margin: 0; width: 100%; text-align: center; }
+#list li { margin: 5px 0; font-size: 14px; background: #f9f9f9; padding: 6px 10px; border-radius: 6px; border: 1px solid #eee; box-shadow: 0 1px 2px rgba(0,0,0,0.1); width: 100%; }
+
+@media (max-width:480px){ .sign { font-size:12px; gap:5px; } .cell { width:40px; height:40px; font-size:12px; } #grid { grid-template-columns: repeat(13, 40px); grid-template-rows: repeat(20, 40px);} #signs { grid-template-rows: repeat(20, 40px); } }
+@media(max-width: 767px) { #about { position: relative; top: auto; max-width: 380px; width: 85%; margin-bottom: 20px; justify-self: center; } }
+
+/* Minimalno valovanje celic ob hover */
+.cell:hover {
+  transform: scale(1.05) translateY(-2px);
+  transition: all 0.2s;
+}
+
+/* --- NOVO: Posebna animacija za vnešene kine --- */
+@keyframes glow {
+  0% { box-shadow: 0 0 5px 2px gold; transform: scale(1.05); }
+  50% { box-shadow: 0 0 15px 5px gold; transform: scale(1.1); }
+  100% { box-shadow: 0 0 5px 2px gold; transform: scale(1.05); }
+}
+
+.cell-highlight {
+  animation: glow 1.5s ease-in-out infinite alternate;
+  z-index: 5; /* da je malce pred drugimi celicami */
+  position: relative;
+}
+
+/* --- NOVO: enkratni zlati val / pulz ob vnosu (odstrani se po animaciji) --- */
+@keyframes goldRipple {
+  0% { box-shadow: 0 0 0 0 rgba(241, 196, 15, 0.8); transform: scale(1); }
+  50% { box-shadow: 0 0 20px 8px rgba(241, 196, 15, 0.15); transform: scale(1.08); }
+  100% { box-shadow: 0 0 0 0 rgba(241, 196, 15, 0); transform: scale(1); }
+}
+.cell-ripple {
+  animation: goldRipple 1.2s ease-out forwards;
+  z-index: 6;
+}
+
+/* --- NOVO: modal --- */
+#modalOverlay {
+  position: fixed;
+  left: 0; top: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+#modal {
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,250,230,0.98));
+  border-radius: 12px;
+  padding: 18px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  border: 2px solid rgba(212,175,55,0.9);
+}
+#modal h3 { margin: 0 0 10px 0; font-size: 20px; }
+#modal p { margin: 6px 0; color: #333; line-height: 1.4; }
+#modal ul { margin: 8px 0 0 16px; padding: 0; max-height: 200px; overflow-y: auto; }
+#modal button { margin-top: 12px; background: #f4d03f; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+
+/* sporočilo spodaj ob vnosu */
+#resultMessage {
+  margin-top: 12px;
+  font-size: 15px;
+  background: rgba(255,255,255,0.9);
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.06);
+  max-width: 720px;
+  text-align: center;
+}
+
+/* diskretni fokus za scrolanje */
+.highlight-focus { outline: 3px solid rgba(255,215,0,0.25); border-radius: 6px; }
+
+</style>
+</head>
+<body>
+
+<h1>Galaktičen Metulj</h1>
+<h2>Tzolkin Matrika 20×13</h2>
+
+<!-- števec -->
+<div id="progressBar">🌟 Prebujenih je <strong id="activeCount">0</strong> / 260 galaktičnih src.</div>
+
+<div id="container-wrapper">
+  <div id="container">
+    <div id="signs"></div>
+    <div id="grid"></div>
+    <div id="about">
+      <h3>🦋 Galaktični Metulj – Vizija 260 Src</h3>
+<p>Dobrodošel_a v <strong>Galaktičnem Metulju</strong>, dihu Tzolkina, mreži, ki povezuje 260 različnih galaktičnih energij — 260 src, 260 različnih izrazov istega Univerzalnega Bitja.</p>
+<p>Vsak Kin je svetlobni piksel v kvantni tkanini, in ko se nas zbere vseh 260, se zgodi kvantni preskok v zavesti. Vsak, ki vnese svoj datum in ime, prižge eno svetlobno točko v metuljevem krilu — svojo frekvenco, svoj dih, svojo barvo.</p>
+<p>Ko se celica zasveti, se prižge iskra spomina: »Tukaj sem. Pripadam mreži Življenja.« Sodeluješ v kozmični igri — a ta igra ima moč zdravljenja sveta.</p>
+<p>🪶 Sodeluj.<br>
+🌀 Dodaj svoj Kin.<br>
+🌈 Pomagaj prebuditi celoten Galaktični Metulj — simbol svetlobne mreže, ki povezuje ljudi, srca in planete v eno skupno vibracijo Ljubezni.</p>
+<p>Ko se združi 260 posameznikov z isto namero, se prebudi 26.000 duš.
+Ko se prebudi 26.000 duš, se dotaknemo 2.6 milijona src.
+In ko se prebudi 2.6 milijona, se prebuja cel svet. 🌍✨
+To je moč učinka 101. opice in učinka metulja — ena misel, eno srce, ena vibracija Ljubezni, ki preobraža vse.</p>
+    </div>
+  </div>
+</div>
+
+<form id="kinForm">
+  <input type="text" id="name" placeholder="Ime in priimek" required>
+  <input type="email" id="email" placeholder="Email" required>
+  <input type="date" id="birthdate" required>
+  <label><input type="checkbox" id="consent"> Strinjam se s politiko zasebnosti</label>
+  <button type="submit">Dodaj</button>
+</form>
+
+<h2>Rezultat: <span id="kinResult"></span></h2>
+<div id="list">
+  <h3>Vneseni Kini:</h3>
+  <ul id="vneseniKiniList"></ul>
+</div>
+
+<div id="modalOverlay">
+  <div id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h3 id="modalTitle">Kin</h3>
+    <p id="modalKinTitle"></p>
+    <div id="modalDescription"></div>
+    <h4>Vpisani (samo imena):</h4>
+    <ul id="modalNames"></ul>
+    <button id="modalClose">Zapri ✨</button>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbyxFsH7kTc_ukxQdKG9T361AgnoLI4yGp5E1AtQPIGDpq7Mqgk_QE5gO1XEFVN8y8ov/exec";
+
+// IMENA IN SLIKE
+const tzolkinSignNamesSimple = ["Krokodil","Veter","Noč","Seme","Kača","Smrt","Jelen","Zvezda","Voda","Pes","Opica","Cesta","Trstika","Jaguar","Orel","Sova","Zemlja","Ogledalo","Nevihta","Sonce"];
+const tzolkinSignImages = [
+"https://static.wixstatic.com/media/7535eb_8b15827f3f0749f58b47edf2ec8ff34a~mv2.png",
+"https://static.wixstatic.com/media/7535eb_da5c22d0b20c4650ae78bd78d44bdf90~mv2.png",
+"https://static.wixstatic.com/media/7535eb_1431fb4ee97a418383209553a73974e5~mv2.png",
+"https://static.wixstatic.com/media/7535eb_63fa92348cef45778a33ea8df474f3b8~mv2.png",
+"https://static.wixstatic.com/media/7535eb_b144e80ceccc4304b10027e8d2f1e674~mv2.png",
+"https://static.wixstatic.com/media/7535eb_9eda107ea6ed46e8880d6cd3394b3eca~mv2.png",
+"https://static.wixstatic.com/media/7535eb_498008e2e9fb4c7ebc66e4a2cf25a1d4~mv2.png",
+"https://static.wixstatic.com/media/7535eb_a86c9fe89c5f4f4d8a810c284e40bf13~mv2.png",
+"https://static.wixstatic.com/media/7535eb_b1612f1d298245a483212ca3997b6872~mv2.png",
+"https://static.wixstatic.com/media/7535eb_fcf459036d31451fb913cd556bdf98b1~mv2.png",
+"https://static.wixstatic.com/media/7535eb_c5e4c01f59e74424806a8b82d55ea9c9~mv2.png",
+"https://static.wixstatic.com/media/7535eb_8b1bd5f0bebf4e9e84734d0dd7c18a55~mv2.png",
+"https://static.wixstatic.com/media/7535eb_5a43cbda692c4bff8790b8d4fe769ec5~mv2.png",
+"https://static.wixstatic.com/media/7535eb_891ac2c5109f44c8927f69170b93aa78~mv2.png",
+"https://static.wixstatic.com/media/7535eb_bcc1d28cea634696895554c9f25a2788~mv2.png",
+"https://static.wixstatic.com/media/7535eb_acd453dcd54e4ca29483cb610e3bab2e~mv2.png",
+"https://static.wixstatic.com/media/7535eb_d413aa3902864a09a3c2bb1ae2996b53~mv2.png",
+"https://static.wixstatic.com/media/7535eb_57d9eafe0dd249ddb5194e43a629e516~mv2.png",
+"https://static.wixstatic.com/media/7535eb_413ee006283f479dbb46cc737b796bb4~mv2.png",
+"https://static.wixstatic.com/media/7535eb_18fc81a965aa4e69974f11d5bb68dc60~mv2.png"
+];
+
+const tzolkinSignNamesFull = ["Imix / Krokodil","Ik / Veter","Akbal / Noč","Kan / Seme","Chicchan / Kača","Cimi / Smrt","Manik / Jelen","Lamat / Zvezda","Muluc / Voda","Oc / Pes","Chuen / Opica","Eb / Cesta","Ben / Trstika","Ix / Jaguar","Men / Orel","Cib / Sova","Caban / Zemlja","Eznab / Ogledalo","Cauac / Nevihta","Ahau / Sonce"];
+
+// PRIKAZ ZNAKOV
+const signsContainer = document.getElementById('signs');
+tzolkinSignImages.forEach((imgUrl, idx)=>{
+    const div=document.createElement('div');
+    div.classList.add('sign');
+    div.innerHTML=`<img src="${imgUrl}" alt="${tzolkinSignNamesFull[idx]}"> ${tzolkinSignNamesFull[idx]}`;
+    signsContainer.appendChild(div);
+});
+
+// Barve po vrstah
+const rowColors=['#f28c82','#ffffff','#aecbfa','#fff475'];
+
+// MREŽA 20x13
+const cells=[];
+const grid = document.getElementById('grid');
+
+for(let row=0; row<20; row++){
+    for(let col=0; col<13; col++){
+        const kinNumber = row + col*20 + 1;
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        cell.textContent = kinNumber;
+        cell.setAttribute('data-kin', kinNumber);
+        const baseColor=rowColors[row%4];
+        cell.style.backgroundColor = baseColor;
+        cell.addEventListener('click',()=>openKinModal(kinNumber));
+        grid.appendChild(cell);
+        cells.push(cell);
+    }
+}
+
+// KIN CALC
+function calculateKin(dateStr){
+    if(!dateStr) return 1;
+    const startDate=new Date('1800-01-01');
+    const startKin=114;
+    const birthDate=new Date(dateStr);
+    const diffDays=Math.floor((birthDate-startDate)/(1000*60*60*24));
+    return ((diffDays+startKin-1)%260+260)%260+1;
+}
+
+function kinToSignIndex(kin){ return (kin-1)%20; }
+function kinToTone(kin){ return ((kin-1)%13)+1; }
+
+const toneDescriptions = {
+1:"Glas začetka in iniciacije — iskra, ki vžge pot.",
+2:"Dvojnost in sodelovanje — odnosi nas učijo ravnotežje.",
+3:"Ustvarjalnost in rast — izraz svoje notranje zgodbe.",
+4:"Temelj in struktura — zgradi stabilno bazo.",
+5:"Moč manifestacije — tvoja volja prinaša rezultate.",
+6:"Jasnost in harmonija — čas uskladiti in zdraviti.",
+7:"Refleksija in znanje — potihni in poslušaj modrost.",
+8:"Moč osebne spremembe — transformacija skozi dejanje.",
+9:"Poglobitev in transparentnost — zdravljenje iz notranjosti.",
+10:"Vodenje in vpliv — prevzmi odgovornost s srcem.",
+11:"Vizija in ideje — deli svoj navdih s svetom.",
+12:"Integracija in služenje — poveži se v skupno dobro.",
+13:"Karmična zaključitev — odpri vrata skrivnostim."
+};
+
+const signShortDesc = {
+"Imix / Krokodil":"Začetek, življenje, plodnost, energija.",
+"Ik / Veter":"Spreminjanje, komunikacija, veter sprememb.",
+"Akbal / Noč":"Intuicija, sanje, notranja moč.",
+"Kan / Seme":"Rast, obilje, seme idej.",
+"Chicchan / Kača":"Preobrazba, strast, zdravilna moč.",
+"Cimi / Smrt":"Zaključevanje ciklov, transformacija.",
+"Manik / Jelen":"Sprejemanje, harmonija, povezovanje.",
+"Lamat / Zvezda":"Lepota, kreativnost, izražanje.",
+"Muluc / Voda":"Čustva, očiščevanje, čistost.",
+"Oc / Pes":"Zvestoba, prijateljstvo, služenje.",
+"Chuen / Opica":"Igra, radost, humor.",
+"Eb / Cesta":"Pot, izbira, karma.",
+"Ben / Trstika":"Napredek, rast, učenje.",
+"Ix / Jaguar":"Moč, magija, skrivnosti.",
+"Men / Orel":"Pogled z višine, vizija.",
+"Cib / Sova":"Modrost, znanje, učenje.",
+"Caban / Zemlja":"Narava, stabilnost, energija zemlje.",
+"Eznab / Ogledalo":"Resnica, introspektiva, zrcaljenje.",
+"Cauac / Nevihta":"Osvoboditev, moč elementov.",
+"Ahau / Sonce":"Svetloba, življenje, radost."
+};
+
+// USERS
+let users={};
+
+async function loadUsersFromSheet(){
+    try{
+        const resp = await fetch(SHEET_URL);
+        const data = await resp.json();
+        users={};
+        data.forEach(u=>{
+            const kinNum=parseInt(u.kin);
+            if(!users[kinNum]) users[kinNum]=[];
+            users[kinNum].push(u.name);
+        });
+        renderUsers();
+    }catch(e){ console.log("Napaka pri nalaganju uporabnikov", e);}
+}
+
+function renderUsers(){
+    const ul = document.getElementById('vneseniKiniList');
+    ul.innerHTML = '';
+    let activeCount = 0;
+
+    for(const kin in users){
+        const names = users[kin];
+        activeCount += names.length;
+
+        const cell = cells.find(c => parseInt(c.getAttribute('data-kin')) === parseInt(kin));
+        if(cell){
+            let counterEl = cell.querySelector('.cell-counter');
+            if(counterEl) counterEl.remove();
+            if(names.length > 1){
+                counterEl = document.createElement('div');
+                counterEl.classList.add('cell-counter');
+                counterEl.textContent = names.length;
+                cell.appendChild(counterEl);
+            }
+        }
+
+        // seznam uporabnikov
+        names.forEach(name=>{
+            const li=document.createElement('li');
+            li.textContent = `Kin ${kin}: ${name}`;
+            ul.appendChild(li);
+        });
+    }
+
+    document.getElementById('activeCount').textContent = activeCount;
+    highlightCells();
+}
+
+function highlightCells(){
+    cells.forEach(c=>{
+        c.classList.remove('cell-highlight');
+        const kin = parseInt(c.getAttribute('data-kin'));
+        const row = (kin-1)%20;
+        if(users[kin] && users[kin].length>0){
+            c.classList.add('cell-highlight');
+            const baseColor=rowColors[row % 4];
+            let intenseColor = baseColor;
+            switch(baseColor){
+                case '#f28c82': intenseColor = '#e53935'; break;
+                case '#fff475': intenseColor = '#fdd835'; break;
+                case '#aecbfa': intenseColor = '#4285f4'; break;
+                case '#ffffff': intenseColor = '#fff176'; break;
+            }
+            c.style.backgroundColor = intenseColor;
+        } else {
+            c.style.backgroundColor = rowColors[row % 4];
+            const counterEl = c.querySelector('.cell-counter');
+            if(counterEl) counterEl.remove();
+        }
+    });
+}
+
+// MODAL
+const modalOverlay = document.getElementById('modalOverlay');
+const modalClose = document.getElementById('modalClose');
+modalClose.addEventListener('click',()=> modalOverlay.style.display='none');
+
+function openKinModal(kin){
+    modalOverlay.style.display='flex';
+    const modal = document.getElementById('modal');
+    modal.style.border = '2px solid gold';
+    const signIndex = (kin-1)%20;
+    const tone = ((kin-1)%13)+1;
+    document.getElementById('modalKinTitle').textContent = `Kin ${kin} - ${tzolkinSignNamesFull[signIndex]} (Ton ${tone})`;
+    document.getElementById('modalDescription').innerHTML = `
+        <p><strong>Opis tona:</strong> ${toneDescriptions[tone]}</p>
+        <p><strong>Kratki opis znaka:</strong> ${signShortDesc[tzolkinSignNamesFull[signIndex]]}</p>
+    `;
+    const namesList=document.getElementById('modalNames');
+    namesList.innerHTML='';
+    if(users[kin]){
+        users[kin].forEach(n=>{
+            const li=document.createElement('li');
+            li.textContent=n;
+            namesList.appendChild(li);
+        });
+    }
+}
+
+// FORM
+document.getElementById('kinForm').addEventListener('submit', async(e)=>{
+    e.preventDefault();
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const birthdate = document.getElementById('birthdate').value;
+    const consent = document.getElementById('consent').checked;
+    if(!consent){ alert("Sprejmi politiko zasebnosti"); return;}
+
+    const kin = calculateKin(birthdate);
+    if(!users[kin]) users[kin] = [];
+    users[kin].push(name);
+
+    renderUsers();
+    showResultMessage(kin);
+
+    document.getElementById('kinForm').reset();
+});
+
+function showResultMessage(kin){
+    document.getElementById('kinResult').textContent = `Kin ${kin} - ${tzolkinSignNamesFull[(kin-1)%20]}`;
+}
+
+// INITIALIZE
+loadUsersFromSheet();
+
+});
+</script>
+
+</body>
+</html>
