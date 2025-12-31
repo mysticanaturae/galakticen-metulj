@@ -228,7 +228,7 @@ To je moč učinka 101. opice in učinka metulja — ena misel, eno srce, ena vi
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbyxFsH7kTc_ukxQdKG9T361AgnoLI4yGp5E1AtQPIGDpq7Mqgk_QE5gO1XEFVN8y8ov/exec";
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbytJsQ1PSyD3YBCGgE6R52XJjx6VcTfIQIiSfRkrtoynhfMU8z_o26R44Ie743slHAf/exec";
 
 // IMENA IN SLIKE
 const tzolkinSignNamesSimple = ["Krokodil","Veter","Noč","Seme","Kača","Smrt","Jelen","Zvezda","Voda","Pes","Opica","Cesta","Trstika","Jaguar","Orel","Sova","Zemlja","Ogledalo","Nevihta","Sonce"];
@@ -345,7 +345,7 @@ let users={};
 
 async function loadUsersFromSheet(){
     try{
-        const resp = await fetch(SHEET_URL);
+        const resp = await fetch("https://script.google.com/macros/s/AKfycbytJsQ1PSyD3YBCGgE6R52XJjx6VcTfIQIiSfRkrtoynhfMU8z_o26R44Ie743slHAf/exec");
         const data = await resp.json();
         users={};
         data.forEach(u=>{
