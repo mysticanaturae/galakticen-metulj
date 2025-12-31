@@ -192,28 +192,27 @@ button { padding: 10px 15px; font-size: 16px; cursor: pointer; border-radius: 5p
 <p>🪶 Sodeluj.<br>
 🌀 Dodaj svoj Kin.<br>
 🌈 Pomagaj prebuditi celoten Galaktični Metulj — simbol svetlobne mreže, ki povezuje ljudi, srca in planete v eno skupno vibracijo Ljubezni.</p>
-<p>Ko se združi 260 posameznikov z isto namero, se prebudi 26.000 duš.
-Ko se prebudi 26.000 duš, se dotaknemo 2.6 milijona src.
-In ko se prebudi 2.6 milijona, se prebuja cel svet. 🌍✨
-To je moč učinka 101. opice in učinka metulja — ena misel, eno srce, ena vibracija Ljubezni, ki preobraža vse.</p>
     </div>
   </div>
 </div>
 
 <form id="kinForm">
-  <input type="text" id="name" placeholder="Ime in priimek" required>
+  <input type="text" id="name" placeholder="Ime" required>
   <input type="email" id="email" placeholder="Email" required>
   <input type="date" id="birthdate" required>
   <label><input type="checkbox" id="consent"> Strinjam se s politiko zasebnosti</label>
   <button type="submit">Dodaj</button>
 </form>
 
-<h2>Rezultat: <span id="kinResult"></span></h2>
+<!-- sporočilo ob vnosu -->
+<div id="resultMessage" aria-live="polite" style="display:none;"></div>
+
 <div id="list">
   <h3>Vneseni Kini:</h3>
-  <ul id="vneseniKiniList"></ul>
+  <ul id="userList"></ul>
 </div>
 
+<!-- modal -->
 <div id="modalOverlay">
   <div id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <h3 id="modalTitle">Kin</h3>
@@ -225,13 +224,33 @@ To je moč učinka 101. opice in učinka metulja — ena misel, eno srce, ena vi
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbz7i_ds82AsdahNodX9AGCesvi5hhqlBlP5a1TR48yTGhbJ6CDmUhMU8doXBMF77E7k/exec";
+/* --- Firebase konfiguracija --- */
+const firebaseConfig = { 
+  apiKey: "AIzaSyAzFej1wNz-erdMtOPNA9DyCrSUYKXLLX8", 
+  authDomain: "galakticni-metulj.firebaseapp.com", 
+  databaseURL: "https://galakticni-metulj-default-rtdb.firebaseio.com", 
+  projectId: "galakticni-metulj", 
+  storageBucket: "galakticni-metulj.firebasestorage.app", 
+  messagingSenderId: "283714253337", 
+  appId: "1:283714253337:web:f0cf973fb36ef1ce9c3088", 
+  measurementId: "G-MQ99G4S3N1" 
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-// IMENA IN SLIKE
-const tzolkinSignNamesSimple = ["Krokodil","Veter","Noč","Seme","Kača","Smrt","Jelen","Zvezda","Voda","Pes","Opica","Cesta","Trstika","Jaguar","Orel","Sova","Zemlja","Ogledalo","Nevihta","Sonce"];
+/* --- TRADICIONALNA IMENA (slovensko, enostavno) --- */
+const tzolkinSignNamesSimple = [
+  "Krokodil","Veter","Noč","Seme",
+  "Kača","Smrt","Jelen","Zvezda",
+  "Voda","Pes","Opica","Cesta",
+  "Trstika","Jaguar","Orel","Sova",
+  "Zemlja","Ogledalo","Nevihta","Sonce"
+];
+
+/* --- za prikaz v seznamu znakov uporabljamo obstoječe pare (ohranjeno) --- */
 const tzolkinSignImages = [
 "https://static.wixstatic.com/media/7535eb_8b15827f3f0749f58b47edf2ec8ff34a~mv2.png",
 "https://static.wixstatic.com/media/7535eb_da5c22d0b20c4650ae78bd78d44bdf90~mv2.png",
@@ -255,23 +274,30 @@ const tzolkinSignImages = [
 "https://static.wixstatic.com/media/7535eb_18fc81a965aa4e69974f11d5bb68dc60~mv2.png"
 ];
 
-const tzolkinSignNamesFull = ["Imix / Krokodil","Ik / Veter","Akbal / Noč","Kan / Seme","Chicchan / Kača","Cimi / Smrt","Manik / Jelen","Lamat / Zvezda","Muluc / Voda","Oc / Pes","Chuen / Opica","Eb / Cesta","Ben / Trstika","Ix / Jaguar","Men / Orel","Cib / Sova","Caban / Zemlja","Eznab / Ogledalo","Cauac / Nevihta","Ahau / Sonce"];
+const tzolkinSignNamesFull = [
+"Imix / Krokodil","Ik / Veter","Akbal / Noč","Kan / Seme",
+"Chicchan / Kača","Cimi / Smrt","Manik / Jelen","Lamat / Zvezda",
+"Muluc / Voda","Oc / Pes","Chuen / Opica","Eb / Cesta",
+"Ben / Trstika","Ix / Jaguar","Men / Orel","Cib / Sova",
+"Caban / Zemlja","Eznab / Ogledalo","Cauac / Nevihta","Ahau / Sonce"
+];
 
-// PRIKAZ ZNAKOV
+/* --- prikaži znake v levi vrstici --- */
 const signsContainer = document.getElementById('signs');
-tzolkinSignImages.forEach((imgUrl, idx)=>{
-    const div=document.createElement('div');
+tzolkinSignImages.forEach((imgUrl, idx) => {
+    const div = document.createElement('div');
     div.classList.add('sign');
-    div.innerHTML=`<img src="${imgUrl}" alt="${tzolkinSignNamesFull[idx]}"> ${tzolkinSignNamesFull[idx]}`;
+    div.innerHTML = `<img src="${imgUrl}" alt="${tzolkinSignNamesFull[idx]}"> ${tzolkinSignNamesFull[idx]}`;
     signsContainer.appendChild(div);
 });
 
-// Barve po vrstah
-const rowColors=['#f28c82','#ffffff','#aecbfa','#fff475'];
+/* --- Barve po vrstah: rdeča, bela, modra, rumena ... (ohranjeno) */
+const rowColors = ['#f28c82','#ffffff','#aecbfa','#fff475'];
 
-// MREŽA 20x13
-const cells=[];
+/* --- Ustvari mrežo 20x13 --- */
+const cells = [];
 const grid = document.getElementById('grid');
+const kinCount = {};
 
 for(let row=0; row<20; row++){
     for(let col=0; col<13; col++){
@@ -280,210 +306,268 @@ for(let row=0; row<20; row++){
         cell.classList.add('cell');
         cell.textContent = kinNumber;
         cell.setAttribute('data-kin', kinNumber);
-        const baseColor=rowColors[row%4];
+
+        // nastavitev osnovne barve
+        const baseColor = rowColors[row%4];
         cell.style.backgroundColor = baseColor;
-        cell.addEventListener('click',()=>openKinModal(kinNumber));
+
+        // dodaj listener za klik na celico - odpre modal s seznami
+        cell.addEventListener('click', () => openKinModal(kinNumber));
+
         grid.appendChild(cell);
         cells.push(cell);
     }
 }
 
-// KIN CALC
+/* --- Funkcija za izračun Kina --- */
 function calculateKin(dateStr){
     if(!dateStr) return 1;
-    const startDate=new Date('1800-01-01');
-    const startKin=114;
-    const birthDate=new Date(dateStr);
-    const diffDays=Math.floor((birthDate-startDate)/(1000*60*60*24));
-    return ((diffDays+startKin-1)%260+260)%260+1;
+    const startDate = new Date('1800-01-01');
+    const startKin = 114;
+    const birthDate = new Date(dateStr);
+    const diffDays = Math.floor((birthDate - startDate)/(1000*60*60*24));
+    return ((diffDays + startKin -1) % 260 + 260) % 260 +1;
 }
 
-function kinToSignIndex(kin){ return (kin-1)%20; }
-function kinToTone(kin){ return ((kin-1)%13)+1; }
+/* --- Pomožne funkcije za razlago: iz kina do imena znaka in tona --- */
+function kinToSignIndex(kin){
+  return (kin - 1) % 20; // 0..19
+}
+function kinToTone(kin){
+  return ((kin - 1) % 13) + 1; // 1..13
+}
 
+/* TEMPLATES za tone (kratek, slovensko) */
 const toneDescriptions = {
-1:"Glas začetka in iniciacije — iskra, ki vžge pot.",
-2:"Dvojnost in sodelovanje — odnosi nas učijo ravnotežje.",
-3:"Ustvarjalnost in rast — izraz svoje notranje zgodbe.",
-4:"Temelj in struktura — zgradi stabilno bazo.",
-5:"Moč manifestacije — tvoja volja prinaša rezultate.",
-6:"Jasnost in harmonija — čas uskladiti in zdraviti.",
-7:"Refleksija in znanje — potihni in poslušaj modrost.",
-8:"Moč osebne spremembe — transformacija skozi dejanje.",
-9:"Poglobitev in transparentnost — zdravljenje iz notranjosti.",
-10:"Vodenje in vpliv — prevzmi odgovornost s srcem.",
-11:"Vizija in ideje — deli svoj navdih s svetom.",
-12:"Integracija in služenje — poveži se v skupno dobro.",
-13:"Karmična zaključitev — odpri vrata skrivnostim."
+  1: "Glas začetka in iniciacije — iskra, ki vžge pot.",
+  2: "Dvojnost in sodelovanje — odnosi nas učijo ravnotežje.",
+  3: "Ustvarjalnost in rast — izraz svoje notranje zgodbe.",
+  4: "Temelj in struktura — zgradi stabilno bazo.",
+  5: "Moč manifestacije — tvoja volja prinaša rezultate.",
+  6: "Jasnost in harmonija — čas uskladiti in zdraviti.",
+  7: "Refleksija in znanje — potihni in poslušaj modrost.",
+  8: "Moč osebne spremembe — transformacija skozi dejanje.",
+  9: "Poglobitev in transparentnost — zdravljenje iz notranjosti.",
+  10: "Vodenje in vpliv — prevzmi odgovornost s srcem.",
+  11: "Vizija in ideje — deli svoj navdih s svetom.",
+  12: "Integracija in služenje — poveži se v skupno dobro.",
+  13: "Karmična čarovnija — skrivnosti in preobrazba."
 };
 
+/* Kratke definicije za 20 znakov v slovenščini (tradicionalno, preprosto) */
 const signShortDesc = {
-"Imix / Krokodil":"Začetek, življenje, plodnost, energija.",
-"Ik / Veter":"Spreminjanje, komunikacija, veter sprememb.",
-"Akbal / Noč":"Intuicija, sanje, notranja moč.",
-"Kan / Seme":"Rast, obilje, seme idej.",
-"Chicchan / Kača":"Preobrazba, strast, zdravilna moč.",
-"Cimi / Smrt":"Zaključevanje ciklov, transformacija.",
-"Manik / Jelen":"Sprejemanje, harmonija, povezovanje.",
-"Lamat / Zvezda":"Lepota, kreativnost, izražanje.",
-"Muluc / Voda":"Čustva, očiščevanje, čistost.",
-"Oc / Pes":"Zvestoba, prijateljstvo, služenje.",
-"Chuen / Opica":"Igra, radost, humor.",
-"Eb / Cesta":"Pot, izbira, karma.",
-"Ben / Trstika":"Napredek, rast, učenje.",
-"Ix / Jaguar":"Moč, magija, skrivnosti.",
-"Men / Orel":"Pogled z višine, vizija.",
-"Cib / Sova":"Modrost, znanje, učenje.",
-"Caban / Zemlja":"Narava, stabilnost, energija zemlje.",
-"Eznab / Ogledalo":"Resnica, introspektiva, zrcaljenje.",
-"Cauac / Nevihta":"Osvoboditev, moč elementov.",
-"Ahau / Sonce":"Svetloba, življenje, radost."
+  "Krokodil": "Izvor energije, začetek, materinska moč.",
+  "Veter": "Gibanje, komunikacija, zrak idej.",
+  "Noč": "Sanje, notranji svet, intuicija.",
+  "Seme": "Rast, možnost, potencial novih zadev.",
+  "Kača": "Transformacija, življenjska sila, preobrazba.",
+  "Smrt": "Konec kot preobrazba, očiščenje.",
+  "Jelen": "Zaledje, pomoč, srčna moč.",
+  "Zvezda": "Umetnost, harmonija, estetska lepota.",
+  "Voda": "Čustva, očiščevalna energija, vez.",
+  "Pes": "Zvestoba, služenje, družina.",
+  "Opica": "Igrivost, ustvarjalnost, iznajdljivost.",
+  "Cesta": "Usmerjenost, usoda, poti v življenju.",
+  "Trstika": "Rast, razvijanje moči in stabilnosti.",
+  "Jaguar": "Moč senc, zaščita, notranja moč.",
+  "Orel": "Razgled, širina, duhovna perspektiva.",
+  "Sova": "Modrost, nočno videnje, zaznavanje resnice.",
+  "Zemlja": "Opora, sinhronost z naravo, stabilnost.",
+  "Ogledalo": "Refleksija, resnica, jasno zrcalo.",
+  "Nevihta": "Močna transformacija, očiščevalni vihar.",
+  "Sonce": "Izpolnitev, svetloba, srčna moč."
 };
 
-// USERS
-let users = {};
+/* --- Osvetli Kin v mreži z animacijo zlatega okvirčka --- */
+function highlightKin(kin){
+    const cell = cells.find(c => parseInt(c.dataset.kin) === kin);
+    if(!cell) return;
 
-// Funkcija za nalaganje uporabnikov (JSONP GET)
-function loadUsersFromSheet() {
-    const script = document.createElement('script');
-    script.src = "https://script.google.com/macros/s/AKfycbwGoPGZOvBAi_iL7wHiuDrv5u2T7pXq28B7O1QTlNtq1JsJIWS5g9qdY-94B9QCwVA-/exec";
-    document.body.appendChild(script);
-}
+    // povečaj števec za ta kin
+    kinCount[kin] = (kinCount[kin] || 0) + 1;
 
-// Callback funkcija, ki jo JSONP kliče
-function handleUsers(data) {
-    users = {};  // reset
-    data.forEach(u => {
-        const kinNum = parseInt(u.kin);
-        if (!users[kinNum]) users[kinNum] = [];
-        users[kinNum].push(u.name);
-    });
-    renderUsers();
-}
+    // spremeni barvo ozadja
+    const baseRow = (kin - 1) % 20;
+    const baseColor = rowColors[baseRow % 4];
+    const colorMap = {
+        '#f28c82':'#c1272d',
+        '#ffffff':'#cccccc',
+        '#aecbfa':'#3c78d8',
+        '#fff475':'#f1c232'
+    };
+    cell.style.backgroundColor = colorMap[baseColor] || baseColor;
 
-// Funkcija za prikaz uporabnikov in obarvanje celic
-function renderUsers() {
-    const ul = document.getElementById('vneseniKiniList');
-    ul.innerHTML = '';
-    let activeCount = 0;
-
-    for (const kin in users) {
-        const names = users[kin];
-        activeCount += names.length;
-
-        const cell = cells.find(c => parseInt(c.getAttribute('data-kin')) === parseInt(kin));
-        if (cell) {
-            let counterEl = cell.querySelector('.cell-counter');
-            if (counterEl) counterEl.remove();
-            if (names.length > 1) {
-                counterEl = document.createElement('div');
-                counterEl.classList.add('cell-counter');
-                counterEl.textContent = names.length;
-                cell.appendChild(counterEl);
-            }
-        }
-
-        names.forEach(name => {
-            const li = document.createElement('li');
-            li.textContent = `Kin ${kin}: ${name}`;
-            ul.appendChild(li);
-        });
+    // dodaj animacijo, če še ni
+    if(!cell.classList.contains('cell-highlight')){
+        cell.classList.add('cell-highlight');
     }
 
-    document.getElementById('activeCount').textContent = activeCount;
-    highlightCells(); // osveži barve in animacije
+    // posodobi števec v celici – vedno pokaže pravi count
+    let counter = cell.querySelector('.cell-counter');
+    if(!counter){
+        counter = document.createElement('div');
+        counter.classList.add('cell-counter');
+        cell.appendChild(counter);
+    }
+    counter.textContent = kinCount[kin];  // tu se vedno pokaže pravi count
 }
 
-// Funkcija za barvanje celic
-function highlightCells() {
-    cells.forEach(c => {
-        c.classList.remove('cell-highlight');
-        const kin = parseInt(c.getAttribute('data-kin'));
-        const row = (kin - 1) % 20;
-        if (users[kin] && users[kin].length > 0) {
-            c.classList.add('cell-highlight');
-            const baseColor = rowColors[row % 4];
-            let intenseColor = baseColor;
-            switch (baseColor) {
-                case '#f28c82': intenseColor = '#e53935'; break;
-                case '#fff475': intenseColor = '#fdd835'; break;
-                case '#aecbfa': intenseColor = '#4285f4'; break;
-                case '#ffffff': intenseColor = '#fff176'; break;
-            }
-            c.style.backgroundColor = intenseColor;
-        } else {
-            c.style.backgroundColor = rowColors[row % 4];
-            const counterEl = c.querySelector('.cell-counter');
-            if (counterEl) counterEl.remove();
-        }
+/* --- Poslušanje novih uporabnikov v realnem času in urejen seznam --- */
+const userList = document.getElementById('userList');
+const users = []; // lokalni array za vse uporabnike
+
+db.ref('users').on('child_added', snapshot => {
+    const data = snapshot.val();
+    const {name, kin} = data;
+
+    // dodaj uporabnika v lokalni array
+    users.push({name, kin});
+
+    // sortiraj po kin
+    users.sort((a, b) => a.kin - b.kin);
+
+    // počisti trenutno listo in izpiši po vrsti
+    userList.innerHTML = '';
+    users.forEach(u => {
+        const li = document.createElement('li');
+        li.textContent = `${u.name} - Kin: ${u.kin}`;
+        userList.appendChild(li);
     });
-}
 
-// MODAL
+    // Osvetli Kin v mreži
+    highlightKin(kin);
+
+    // posodobi števec (prav tako posodablja spodnji on('value') handler)
+});
+
+/* --- Štetje aktivnih Kinov (v realnem času) --- */
+const activeCountEl = document.getElementById('activeCount');
+db.ref('users').on('value', snapshot => {
+  const count = snapshot.numChildren();
+  activeCountEl.textContent = count;
+});
+
+/* --- Modal: odpri in prikaži imena za ta kin --- */
 const modalOverlay = document.getElementById('modalOverlay');
+const modalKinTitle = document.getElementById('modalKinTitle');
+const modalNames = document.getElementById('modalNames');
+const modalDescription = document.getElementById('modalDescription');
 const modalClose = document.getElementById('modalClose');
-modalClose.addEventListener('click', () => modalOverlay.style.display = 'none');
+const modalTitle = document.getElementById('modalTitle');
 
-function openKinModal(kin) {
-    modalOverlay.style.display = 'flex';
-    const modal = document.getElementById('modal');
-    modal.style.border = '2px solid gold';
-    const signIndex = (kin - 1) % 20;
-    const tone = ((kin - 1) % 13) + 1;
-    document.getElementById('modalKinTitle').textContent = `Kin ${kin} - ${tzolkinSignNamesFull[signIndex]} (Ton ${tone})`;
-    document.getElementById('modalDescription').innerHTML = `
-        <p><strong>Opis tona:</strong> ${toneDescriptions[tone]}</p>
-        <p><strong>Kratki opis znaka:</strong> ${signShortDesc[tzolkinSignNamesFull[signIndex]]}</p>
-    `;
-    const namesList = document.getElementById('modalNames');
-    namesList.innerHTML = '';
-    if (users[kin]) {
-        users[kin].forEach(n => {
-            const li = document.createElement('li');
-            li.textContent = n;
-            namesList.appendChild(li);
-        });
+function openKinModal(kin){
+  modalOverlay.style.display = 'flex';
+  const signName = tzolkinSignNamesSimple[kinToSignIndex(kin)];
+  const tone = kinToTone(kin);
+  modalTitle.textContent = `Kin ${kin} — ${tone} Ton`;
+  modalKinTitle.textContent = `Kin ${kin} – ${tone} ${signName}`;
+  modalDescription.innerHTML = `<p><strong>Opis:</strong> ${toneDescriptions[tone]} ${signShortDesc[signName] ? " " + signShortDesc[signName] : ""}</p>`;
+
+  // počisti seznam imen
+  modalNames.innerHTML = '<li>nalaganje…</li>';
+
+  // poizvedba v Firebase za vse z istim kinom (samo imena)
+  db.ref('users').orderByChild('kin').equalTo(kin).once('value', snap => {
+    const val = snap.val();
+    modalNames.innerHTML = '';
+    if(!val){
+      modalNames.innerHTML = '<li>(še nihče ni vpisan)</li>';
+      return;
     }
+    Object.values(val).forEach(user => {
+      const li = document.createElement('li');
+      li.textContent = user.name;
+      modalNames.appendChild(li);
+    });
+  });
 }
 
-// FORM
-document.getElementById('kinForm').addEventListener('submit', (e) => {
-    e.preventDefault();
+function closeModal(){
+  modalOverlay.style.display = 'none';
+}
+modalClose.addEventListener('click', closeModal);
+modalOverlay.addEventListener('click', (e) => { if(e.target === modalOverlay) closeModal(); });
 
+/* --- Dodajanje uporabnika --- */
+document.getElementById('kinForm').addEventListener('submit', function(e){
+    e.preventDefault();
     const name = document.getElementById('name').value.trim();
     const email = document.getElementById('email').value.trim();
     const birthdate = document.getElementById('birthdate').value;
     const consent = document.getElementById('consent').checked;
 
-    if (!consent) {
-        alert("Sprejmi politiko zasebnosti");
-        return;
-    }
+    if(!consent){ alert('Prosimo, sprejmite politiko zasebnosti.'); return; }
 
     const kin = calculateKin(birthdate);
 
-    fetch(SHEET_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, birthdate, kin })
-    })
-    .then(resp => resp.json())
-    .then(result => {
-        if (!result.success) {
-            alert(result.message || "Napaka pri shranjevanju");
-            return;
-        }
-        loadUsersFromSheet(); // ponovno naloži podatke
+    const newUserRef = db.ref('users').push();
+    newUserRef.set({name, email, birthdate, kin})
+      .then(() => {
+        // Ob vnosu: prikaži spodnje sporočilo z razlago (slovenščina)
         showResultMessage(kin);
+
+        // poišči celico in izvedi scroll + ugasni ripple/čez čas
+        const cell = cells.find(c=>parseInt(c.textContent)===kin);
+        if(cell){
+          // scroll v središče pogleda
+          cell.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+
+          // dodaj ripple in poudarek
+          cell.classList.add('cell-ripple');
+          cell.classList.add('highlight-focus');
+
+          // odstranimo enkratni ripple po 1400ms in highlight fokus po 2200ms
+          setTimeout(()=> cell.classList.remove('cell-ripple'), 1400);
+          setTimeout(()=> cell.classList.remove('highlight-focus'), 2200);
+        }
+
+        // reset forme
         document.getElementById('kinForm').reset();
-    })
-    .catch(err => {
-        console.error(err);
-        alert("Napaka pri povezavi z Google Sheet");
-    });
+      })
+      .catch(err => {
+        console.error("Napaka pri vnosu v Firebase:", err);
+        alert("Prišlo je do napake pri shranjevanju. Poskusi znova.");
+      });
 });
 
-// INITIALIZE ob nalaganju strani
-document.addEventListener('DOMContentLoaded', () => {
-    loadUsersFromSheet();
+/* --- Funkcija za prikaz sporočila spodaj z razlago (slovenščina) --- */
+const resultMessageEl = document.getElementById('resultMessage');
+function showResultMessage(kin){
+  const signName = tzolkinSignNamesSimple[kinToSignIndex(kin)];
+  const tone = kinToTone(kin);
+  const toneText = toneDescriptions[tone] || "";
+  const signText = signShortDesc[signName] || "";
+  resultMessageEl.style.display = 'block';
+  resultMessageEl.innerHTML = `<strong>Tvoj Kin je ${kin} – ${tone} ${signName}.</strong><br>${toneText} ${signText}`;
+  // po 10s počisti sporočilo (nežno)
+  setTimeout(()=> {
+    resultMessageEl.style.opacity = '1';
+    setTimeout(()=> {
+      resultMessageEl.style.transition = 'opacity 0.8s ease';
+      resultMessageEl.style.opacity = '0';
+      setTimeout(()=> { resultMessageEl.style.display='none'; resultMessageEl.style.opacity='1'; resultMessageEl.style.transition=''; }, 900);
+    }, 9000);
+  }, 400);
+}
+
+/* --- OPTIONAL: ob zagonu naloži obstoječe vnešene uporabnike (če že niso naloženi) --- */
+/* Če podatki že prispejo preko child_added, zgornji on('child_added') poskrbi za osvetlitev in seznam,
+   zato tu ni treba posebej jemati snapshot. */
+
+/* --- Dodaten: ko klikneš na katerikoli element v #list, scrolaj do kin (lahek UX) --- */
+document.getElementById('userList').addEventListener('click', (e)=>{
+  const text = e.target.textContent || "";
+  const match = text.match(/Kin:\s*(\d+)/i);
+  if(match){
+    const kin = parseInt(match[1]);
+    const cell = cells.find(c=>parseInt(c.textContent)===kin);
+    if(cell){
+      cell.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+      cell.classList.add('cell-ripple');
+      setTimeout(()=> cell.classList.remove('cell-ripple'), 1400);
+    }
+  }
 });
+</script>
+</body>
+</html>
