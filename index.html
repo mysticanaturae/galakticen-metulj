@@ -341,36 +341,41 @@ const signShortDesc = {
 };
 
 // USERS
-let users={};
+let users = {};
 
-async function loadUsersFromSheet(){
-    try{
-        const resp = await fetch("https://script.google.com/macros/s/AKfycbz7i_ds82AsdahNodX9AGCesvi5hhqlBlP5a1TR48yTGhbJ6CDmUhMU8doXBMF77E7k/exec");
-        const data = await resp.json();
-        users={};
-        data.forEach(u=>{
-            const kinNum=parseInt(u.kin);
-            if(!users[kinNum]) users[kinNum]=[];
-            users[kinNum].push(u.name);
-        });
-        renderUsers();
-    }catch(e){ console.log("Napaka pri nalaganju uporabnikov", e);}
+// Funkcija za nalaganje uporabnikov (JSONP GET)
+function loadUsersFromSheet() {
+    const script = document.createElement('script');
+    script.src = "https://script.google.com/macros/s/AKfycbwGoPGZOvBAi_iL7wHiuDrv5u2T7pXq28B7O1QTlNtq1JsJIWS5g9qdY-94B9QCwVA-/exec";
+    document.body.appendChild(script);
 }
 
-function renderUsers(){
+// Callback funkcija, ki jo JSONP kliče
+function handleUsers(data) {
+    users = {};  // reset
+    data.forEach(u => {
+        const kinNum = parseInt(u.kin);
+        if (!users[kinNum]) users[kinNum] = [];
+        users[kinNum].push(u.name);
+    });
+    renderUsers();
+}
+
+// Funkcija za prikaz uporabnikov in obarvanje celic
+function renderUsers() {
     const ul = document.getElementById('vneseniKiniList');
     ul.innerHTML = '';
     let activeCount = 0;
 
-    for(const kin in users){
+    for (const kin in users) {
         const names = users[kin];
         activeCount += names.length;
 
         const cell = cells.find(c => parseInt(c.getAttribute('data-kin')) === parseInt(kin));
-        if(cell){
+        if (cell) {
             let counterEl = cell.querySelector('.cell-counter');
-            if(counterEl) counterEl.remove();
-            if(names.length > 1){
+            if (counterEl) counterEl.remove();
+            if (names.length > 1) {
                 counterEl = document.createElement('div');
                 counterEl.classList.add('cell-counter');
                 counterEl.textContent = names.length;
@@ -378,28 +383,28 @@ function renderUsers(){
             }
         }
 
-        // seznam uporabnikov
-        names.forEach(name=>{
-            const li=document.createElement('li');
+        names.forEach(name => {
+            const li = document.createElement('li');
             li.textContent = `Kin ${kin}: ${name}`;
             ul.appendChild(li);
         });
     }
 
     document.getElementById('activeCount').textContent = activeCount;
-    highlightCells();
+    highlightCells(); // osveži barve in animacije
 }
 
-function highlightCells(){
-    cells.forEach(c=>{
+// Funkcija za barvanje celic
+function highlightCells() {
+    cells.forEach(c => {
         c.classList.remove('cell-highlight');
         const kin = parseInt(c.getAttribute('data-kin'));
-        const row = (kin-1)%20;
-        if(users[kin] && users[kin].length>0){
+        const row = (kin - 1) % 20;
+        if (users[kin] && users[kin].length > 0) {
             c.classList.add('cell-highlight');
-            const baseColor=rowColors[row % 4];
+            const baseColor = rowColors[row % 4];
             let intenseColor = baseColor;
-            switch(baseColor){
+            switch (baseColor) {
                 case '#f28c82': intenseColor = '#e53935'; break;
                 case '#fff475': intenseColor = '#fdd835'; break;
                 case '#aecbfa': intenseColor = '#4285f4'; break;
@@ -409,7 +414,7 @@ function highlightCells(){
         } else {
             c.style.backgroundColor = rowColors[row % 4];
             const counterEl = c.querySelector('.cell-counter');
-            if(counterEl) counterEl.remove();
+            if (counterEl) counterEl.remove();
         }
     });
 }
@@ -417,32 +422,32 @@ function highlightCells(){
 // MODAL
 const modalOverlay = document.getElementById('modalOverlay');
 const modalClose = document.getElementById('modalClose');
-modalClose.addEventListener('click',()=> modalOverlay.style.display='none');
+modalClose.addEventListener('click', () => modalOverlay.style.display = 'none');
 
-function openKinModal(kin){
-    modalOverlay.style.display='flex';
+function openKinModal(kin) {
+    modalOverlay.style.display = 'flex';
     const modal = document.getElementById('modal');
     modal.style.border = '2px solid gold';
-    const signIndex = (kin-1)%20;
-    const tone = ((kin-1)%13)+1;
+    const signIndex = (kin - 1) % 20;
+    const tone = ((kin - 1) % 13) + 1;
     document.getElementById('modalKinTitle').textContent = `Kin ${kin} - ${tzolkinSignNamesFull[signIndex]} (Ton ${tone})`;
     document.getElementById('modalDescription').innerHTML = `
         <p><strong>Opis tona:</strong> ${toneDescriptions[tone]}</p>
         <p><strong>Kratki opis znaka:</strong> ${signShortDesc[tzolkinSignNamesFull[signIndex]]}</p>
     `;
-    const namesList=document.getElementById('modalNames');
-    namesList.innerHTML='';
-    if(users[kin]){
-        users[kin].forEach(n=>{
-            const li=document.createElement('li');
-            li.textContent=n;
+    const namesList = document.getElementById('modalNames');
+    namesList.innerHTML = '';
+    if (users[kin]) {
+        users[kin].forEach(n => {
+            const li = document.createElement('li');
+            li.textContent = n;
             namesList.appendChild(li);
         });
     }
 }
 
 // FORM
-document.getElementById('kinForm').addEventListener('submit', async (e) => {
+document.getElementById('kinForm').addEventListener('submit', (e) => {
     e.preventDefault();
 
     const name = document.getElementById('name').value.trim();
@@ -457,44 +462,28 @@ document.getElementById('kinForm').addEventListener('submit', async (e) => {
 
     const kin = calculateKin(birthdate);
 
-    try {
-        const resp = await fetch(SHEET_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                name,
-                email,
-                birthdate,
-                kin
-            })
-        });
-
-        const result = await resp.json();
-
+    fetch(SHEET_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, birthdate, kin })
+    })
+    .then(resp => resp.json())
+    .then(result => {
         if (!result.success) {
             alert(result.message || "Napaka pri shranjevanju");
             return;
         }
-
-    } catch (err) {
+        loadUsersFromSheet(); // ponovno naloži podatke
+        showResultMessage(kin);
+        document.getElementById('kinForm').reset();
+    })
+    .catch(err => {
         console.error(err);
         alert("Napaka pri povezavi z Google Sheet");
-        return;
-    }
-
-    // 🔁 ponovno naloži podatke iz Sheeta
-    await loadUsersFromSheet();
-
-    showResultMessage(kin);
-    document.getElementById('kinForm').reset();
+    });
 });
-// INITIALIZE
-loadUsersFromSheet();
 
+// INITIALIZE ob nalaganju strani
+document.addEventListener('DOMContentLoaded', () => {
+    loadUsersFromSheet();
 });
-</script>
-
-</body>
-</html>
