@@ -228,7 +228,7 @@ To je moč učinka 101. opice in učinka metulja — ena misel, eno srce, ena vi
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbytJsQ1PSyD3YBCGgE6R52XJjx6VcTfIQIiSfRkrtoynhfMU8z_o26R44Ie743slHAf/exec";
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbz7i_ds82AsdahNodX9AGCesvi5hhqlBlP5a1TR48yTGhbJ6CDmUhMU8doXBMF77E7k/exec";
 
 // IMENA IN SLIKE
 const tzolkinSignNamesSimple = ["Krokodil","Veter","Noč","Seme","Kača","Smrt","Jelen","Zvezda","Voda","Pes","Opica","Cesta","Trstika","Jaguar","Orel","Sova","Zemlja","Ogledalo","Nevihta","Sonce"];
@@ -345,7 +345,7 @@ let users={};
 
 async function loadUsersFromSheet(){
     try{
-        const resp = await fetch("https://script.google.com/macros/s/AKfycbytJsQ1PSyD3YBCGgE6R52XJjx6VcTfIQIiSfRkrtoynhfMU8z_o26R44Ie743slHAf/exec");
+        const resp = await fetch("https://script.google.com/macros/s/AKfycbz7i_ds82AsdahNodX9AGCesvi5hhqlBlP5a1TR48yTGhbJ6CDmUhMU8doXBMF77E7k/exec");
         const data = await resp.json();
         users={};
         data.forEach(u=>{
