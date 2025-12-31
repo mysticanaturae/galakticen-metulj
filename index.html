@@ -442,28 +442,54 @@ function openKinModal(kin){
 }
 
 // FORM
-document.getElementById('kinForm').addEventListener('submit', async(e)=>{
+document.getElementById('kinForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+
     const name = document.getElementById('name').value.trim();
     const email = document.getElementById('email').value.trim();
     const birthdate = document.getElementById('birthdate').value;
     const consent = document.getElementById('consent').checked;
-    if(!consent){ alert("Sprejmi politiko zasebnosti"); return;}
+
+    if (!consent) {
+        alert("Sprejmi politiko zasebnosti");
+        return;
+    }
 
     const kin = calculateKin(birthdate);
-    if(!users[kin]) users[kin] = [];
-    users[kin].push(name);
 
-    renderUsers();
+    try {
+        const resp = await fetch(SHEET_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                name,
+                email,
+                birthdate,
+                kin
+            })
+        });
+
+        const result = await resp.json();
+
+        if (!result.success) {
+            alert(result.message || "Napaka pri shranjevanju");
+            return;
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert("Napaka pri povezavi z Google Sheet");
+        return;
+    }
+
+    // 🔁 ponovno naloži podatke iz Sheeta
+    await loadUsersFromSheet();
+
     showResultMessage(kin);
-
     document.getElementById('kinForm').reset();
 });
-
-function showResultMessage(kin){
-    document.getElementById('kinResult').textContent = `Kin ${kin} - ${tzolkinSignNamesFull[(kin-1)%20]}`;
-}
-
 // INITIALIZE
 loadUsersFromSheet();
 
